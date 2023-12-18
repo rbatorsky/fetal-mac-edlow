@@ -1,7 +1,5 @@
-# MF combined
-
+# Code for Figure 3, Male and Female combined analysis
 LIB='/cluster/tufts/patralab/rbator01/R_libs/4.0.0'
-REPO="http://cran.us.r-project.org"
 .libPaths(c("",LIB))
 
 suppressPackageStartupMessages({
@@ -57,11 +55,10 @@ ck_hbc_mg = ck_filter %>% dplyr::filter(cluster %in% c(pl_hbc, br_clusters))
 deg = read.csv(paste0(indir, "de.mfcombined.obsctr_fix35.obs_vs_ctr.latent_pair_lb2_sex_mast_logfcthresh0_final.csv"))
 table(deg$cluster)
 
-
 # make an example plot
-# p = clusterProfiler::dotplot(ck_hbc_mg, x =~cluster,showCategory =5, font.size = 12) +
-#   theme(axis.text.x=element_text(angle=45, hjust=1))
-# show(p)
+p = clusterProfiler::dotplot(ck_hbc_mg, x =~cluster,showCategory =5, font.size = 12) +
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+show(p)
 
 # 3B Look at the similarities between MgYSI_Pf4 and HBC_Pf4 -----
 
@@ -194,13 +191,6 @@ ggsave(p, filename = paste0(outdir,"select_go_deg_mfcombined_latent_pair_lb2_sex
 
 
 # Fig 3D single category heatmap  -----
-# Make a single GO cat heatmap across all clusters using Complex Heatmap -----
-# select_heat_cat=c("positive regulation of cytokine production",
-#                   "response to lipopolysaccharide",
-#                   "regulation of inflammatory response",
-#                   "response to oxidative stress",
-#                   "ATP metabolic process")
-# 
 select_mg_hbc = c("Mg_Ccl5","Mg_Hspb1","Mg_Sparc","Mg_YSI_Pf4","HBC_Pf4","HBC_Cd72")
 
 
@@ -324,12 +314,6 @@ select_terms = c(
   "Role of NFAT in Regulation of the Immune Response", 
   "Neuroinflammation Signaling Pathway",
   "Phagosome Formation")
-
-# these are potentially also activated in the lfc0.3 filter but don't show up
-#"Macrophage Alternative Activation Signaling Pathway",
-#"Pathogen Induced Cytokine Storm Signaling Pathway"
-#"IL-10 Signaling",
-#"Coronavirus Pathogenesis Pathway",
 
 select_terms = gsub("Œ±", "alpha", select_terms)
 select_terms = gsub("Œ≥", "gamma", select_terms)
@@ -632,13 +616,7 @@ for (i in 1:length(br_clusters)){
   }
 }
 
-
-
-
-#####
-## One line per gene 
-#####
-
+#One line per gene 
 
 cl1=br_clusters
 cl2=pl_hbc

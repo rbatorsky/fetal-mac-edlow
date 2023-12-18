@@ -6,18 +6,15 @@ LIB='/cluster/tufts/patralab/rbator01/R_libs/4.0.0'
 suppressPackageStartupMessages({
   library(org.Mm.eg.db)
   library(clusterProfiler)
-  library(dplyr)
-  library(fgsea)
   library(Seurat)
-  library(ggplot2)
   library(tidyverse)
-  library(enrichplot)})
+})
 
-outdir="/cluster/tufts/slonimlab/rbator01/mouse_scrna_edlow_2020/data/analysis/markers/obsctr/"
+setwd('/cluster/tufts/slonimlab/rbator01/fetal-mac-edlow/')
 
 
 ## Read in features in order to use ensembl IDs
-convert_ens =read.csv("/cluster/tufts/slonimlab/rbator01/mouse_scrna_edlow_2020/data/all_cellranger/AEb2-10_B41_OBS_BR/outs/filtered_feature_bc_matrix/features.tsv.gz",
+convert_ens =read.csv("data/all_cellranger/AEb2-10_B41_OBS_BR/outs/filtered_feature_bc_matrix/features.tsv.gz",
                       sep="\t",
                       col.names=c("ens","gene","na"),
                       header=F)

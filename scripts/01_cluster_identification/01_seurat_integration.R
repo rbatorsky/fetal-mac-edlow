@@ -16,15 +16,15 @@ suppressPackageStartupMessages({
   library(ggvenn)
   library(ggsankey)
   library(future)
+  library(speckle)
+  library(sc2marker)
 })
 
 library(speckle)
 library(sc2marker)
 
 options(future.globals.maxSize = 100000 * 1024^2)
-
 setwd('/cluster/tufts/slonimlab/rbator01/fetal-mac-edlow/')
-
 
 # Parameters ----
 doublet_dir="analysis/doublet_removal/"

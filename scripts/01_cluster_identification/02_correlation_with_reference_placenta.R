@@ -90,9 +90,9 @@ clustAnnoPlot <- function(dat, query, reference, plot_title) {
 
 
 # Load our placenta data ---------------
-seurat_integrated_pl_rename = readRDS("analysis/final_rds/subset/pl_obsctr_final.rds")
+pl_so = readRDS("analysis/final_rds/subset/pl_obsctr_final.rds")
 
-avg_pl=get_avg_so(so=seurat_integrated_pl_rename, res = "cluster_name", string="p_")
+avg_pl=get_avg_so(so=pl_so, res = "cluster_name", string="p_")
 
 #Suryawanshi - they provide the average data -------------
 avg_surya = read.csv("~/slonimlab/rbator01/reference_data/suryawanshi/aau4788_data_file_s1_mousenames.csv")

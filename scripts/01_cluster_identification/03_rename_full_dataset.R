@@ -9,8 +9,6 @@ suppressPackageStartupMessages({
         library(Seurat)
 })
 
-
-
 #  brain data ----
 save_string_br="mandf_br_no128-4each_mf_obsctr_no115ref_w35_cca_nfeatures_3000_npcadim_50_integrated_seurat_noccreg_singler.rds"
 seurat_integrated_br = readRDS(paste0("final_rds/full/",save_string_br))

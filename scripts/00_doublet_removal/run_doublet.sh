@@ -19,7 +19,3 @@ output_path=/cluster/tufts/slonimlab/rbator01/mouse_scrna_edlow_2020/data/analys
 
 Rscript --no-save 00_doublet_removal.R $sample_name $cellranger_directory $output_path
 
-
-# to run this, type on the HPC command line
-#sbatch run.sh my_sample_name 
-
