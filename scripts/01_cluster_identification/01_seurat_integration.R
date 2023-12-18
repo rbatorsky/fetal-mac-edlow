@@ -18,6 +18,9 @@ suppressPackageStartupMessages({
   library(future)
 })
 
+library(speckle)
+library(sc2marker)
+
 options(future.globals.maxSize = 100000 * 1024^2)
 
 setwd('/cluster/tufts/slonimlab/rbator01/fetal-mac-edlow/')
@@ -26,6 +29,8 @@ setwd('/cluster/tufts/slonimlab/rbator01/fetal-mac-edlow/')
 # Parameters ----
 doublet_dir="analysis/doublet_removal/"
 metadata_file="/data/metadata/mandf_combined_no128.csv"
+
+print(doublet_dir)
 
 # OBS/CTR PL 
 input_sample_string = "mandf_pl_no128-4each_mf_obsctr_no115ref_nop6b2"
