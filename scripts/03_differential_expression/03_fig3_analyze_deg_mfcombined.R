@@ -1,5 +1,5 @@
 # Code for Figure 3, Male and Female combined analysis
-LIB='/cluster/tufts/patralab/rbator01/R_libs/4.0.0'
+LIB='/cluster/tufts/patralab/rbator01/R_libs/4.3.0'
 .libPaths(c("",LIB))
 
 suppressPackageStartupMessages({
@@ -18,6 +18,9 @@ indir="analysis/deg_seurat/obsctr/mergesome/mfcombined/"
 outdir="analysis/deg_seurat/obsctr/mergesome/mfcombined/plots/"
 
 ## Types of cells
+#[1] "Mg_Ccl5"     "Mg_Hspb1"    "Mg_Sparc"    "Mg_Spp1"     "Mg_YSI_Pf4"  "HBC_Pf4"     "HBC_Cd72"    "PAMM_Ccl8"   "PAMM_Spp1"   "PAMM_Chil3" 
+#[11] "PAMM_MHCII"  "PAMM_S100a9" "Mono_FPl"    "Mono_FBr"   
+
 pl_hbc=c("HBC_Pf4",
          "HBC_Cd72")
 
@@ -47,8 +50,21 @@ select_mg_hbc = c("Mg_Ccl5","Mg_Hspb1", "Mg_Sparc", "Mg_Spp1", "Mg_YSI_Pf4","HBC
 padj_cut = 0.05
 
 ck=readRDS(file = paste0(indir, "ck_de.mfcombined.obsctr.latent_pair_sex_mast_padj_0.05_abslfc_0.2_nodir_finalfig3.rds"))
-ck_filter = ck %>% dplyr::filter(p.adjust < padj_cut)
-ck_filter@compareClusterResult$cluster = factor(ck_filter@compareClusterResult$cluster, levels=c(br_clusters, pl_hbc, pamm_clusters, mono_clusters))
+levels(ck_filter@compareClusterResult$Cluster)
+ck_filter = ck %>% 
+  dplyr::filter(p.adjust < padj_cut) %>%
+  dplyr::filter(Cluster %in% c(br_clusters, pl_hbc, pamm_clusters, mono_clusters))
+ck_filter@compareClusterResult$Cluster = factor(ck_filter@compareClusterResult$Cluster, levels=c(br_clusters, pl_hbc, pamm_clusters, mono_clusters))
+levels(ck_filter@compareClusterResult$Cluster)
+
+# look at allcell types, unfiltered 
+
+p = clusterProfiler::dotplot(ck_filter,showCategory =3, font.size = 8) +
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+
+show(p)
+
+# look at hbc, mg only
 ck_hbc_mg = ck_filter %>% dplyr::filter(cluster %in% c(pl_hbc, br_clusters))
 
 # DEG results with zero lfc threshold (for heatmap plotting)
