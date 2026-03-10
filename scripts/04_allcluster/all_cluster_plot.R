@@ -20,7 +20,6 @@ seurat_integrated_pl = readRDS("analysis/final_rds/full/mandf_pl_no128-4each_mf_
 Idents(object = seurat_integrated_pl) <- "RNA"
 DefaultAssay(seurat_integrated_pl) = "cell_type"
 
-
 # deg ------
 br_deg = read.csv("analysis/deg_seurat/obsctr/mergesome/mfcombined/mandf_br_alldata_named_cluster_deg.csv")
 pl_deg = read.csv("analysis/deg_seurat/obsctr/mergesome/mfcombined/mandf_pl_alldata_named_cluster_deg.csv")
@@ -86,19 +85,176 @@ ck_df = data.frame(ck)
 ck_df$ratio = DOSE::parse_ratio(ck@compareClusterResult$GeneRatio)
 write.csv(ck_df, "analysis/deg_seurat/obsctr/mergesome/mfcombined/ck_mandf_brpl_select_merge_deg_0.25lfcfilter.csv")
 
-ck = readRDS(file = "analysis/deg_seurat/obsctr/mergesome/mfcombined/ck_mandf_brpl_select_merge_deg_0.25lfcfilter.rds")
-ck@compareClusterResult$Cluster = factor(ck@compareClusterResult$Cluster, levels = cl_to_select)
+# make the plots -----
 
-p = dotplot(ck, showCategory=3) + 
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(Seurat)
+  library(clusterProfiler)
+  library(org.Mm.eg.db)
+})
+
+setwd('/cluster/tufts/slonimlab/rbator01/fetal-mac-edlow/')
+
+cl_to_select = c("Fetal Brain Monocyte","Fetal Brain Granulocyte", "PAMM", "Fetal Placental Monocyte","Fetal Placental Granulocyte")
+
+ck = readRDS(file = "analysis/deg_seurat/obsctr/mergesome/mfcombined/ck_mandf_brpl_select_merge_deg_0.25lfcfilter.rds")
+
+# select the categories shown in fig 3
+stress=c("neuron death",
+         "response to metal ion",
+         "response to oxidative stress",
+         "stress-activated protein kinase signaling cascade",
+         "ERK1 and ERK2 cascade"
+)
+
+immune=c("positive regulation of cytokine production",
+         "response to molecule of bacterial origin",
+         "response to lipopolysaccharide",
+         "myeloid leukocyte migration",
+         "regulation of tumor necrosis factor production",
+         "positive regulation of endocytosis",
+         "tumor necrosis factor production",
+         "regulation of inflammatory response",
+         "humoral immune response")
+
+development=c("myeloid cell differentiation")
+
+metabolic=c("ATP metabolic process",
+            "regulation of mRNA metabolic process",
+            "regulation of cellular amide metabolic process",
+            "generation of precursor metabolites and energy",
+            "carbohydrate catabolic process",
+            "glycolytic process")
+
+protein=c("protein folding",
+          "response to unfolded protein"
+)
+ribosome=c("cytoplasmic translation",
+           "ribonucleoprotein complex assembly",
+           "posttranscriptional regulation of gene expression",
+           "ribosome assembly",
+           "negative regulation of translation",
+           "viral genome replication"
+)
+
+lipid=c("cellular response to lipid")
+
+
+select_terms=c(immune,  metabolic, development, stress, lipid, protein, ribosome)
+
+ck_select = ck %>% 
+  dplyr::filter(Description %in% select_terms) %>%
+  dplyr::filter(Cluster %in% cl_to_select)
+
+ck_select@compareClusterResult$Cluster = factor(ck_select@compareClusterResult$Cluster, levels = cl_to_select)
+ck_select@compareClusterResult$Description = factor(ck_select@compareClusterResult$Description, levels = rev(select_terms))
+
+p = dotplot(ck_select, by = "Count", showCategory=20) + 
   FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 show(p)
-ggsave(p, filename = "analysis/plots/allcluster_subsetnames_deg_goenrich_0.25lfcfilter.pdf",
+
+## The below is to order the factors
+object = ck_select@compareClusterResult
+x= "Cluster"
+colorBy="p.adjust"
+showCategory=15
+by="Count"
+size="Count"
+split=NULL
+includeAll=TRUE
+font.size=12
+title=""
+label_format = 30
+group = FALSE
+shape = FALSE
+color <- NULL
+
+ep_str_wrap <- function(string, width) {
+  x <- gregexpr(' ', string)
+  vapply(seq_along(x),
+         FUN = function(i) {
+           y <- x[[i]]
+           n <- nchar(string[i])
+           len <- (c(y,n) - c(0, y)) ## length + 1
+           idx <- len > width
+           j <- which(!idx)
+           if (length(j) && max(j) == length(len)) {
+             j <- j[-length(j)]
+           }
+           if (length(j)) {
+             idx[j] <- len[j] + len[j+1] > width
+           }
+           idx <- idx[-length(idx)] ## length - 1
+           start <- c(1, y[idx] + 1)
+           end <- c(y[idx] - 1, n)
+           words <- substring(string[i], start, end)
+           paste0(words, collapse="\n")
+         },
+         FUN.VALUE = character(1)
+  )
+}
+
+default_labeller <- function(n) {
+  function(str){
+    str <- gsub("_", " ", str)
+    ep_str_wrap(str, n)
+  }
+}
+
+label_func <- default_labeller(label_format)
+if(is.function(label_format)) {
+  label_func <- label_format
+}
+
+df <- fortify(object, showCategory=showCategory, by=by,
+              includeAll=includeAll, split=split)
+
+label_func <- default_labeller(label_format)
+
+by2 <- switch(size, rowPercentage = "Percentage", 
+              count         = "Count", 
+              geneRatio     = "GeneRatio")    
+
+df$GeneRatio <- DOSE::parse_ratio(df$GeneRatio)
+
+theme_dose <- DOSE::theme_dose
+
+
+p <- ggplot(df, aes_string(x = 'cluster', y = "Description", size = 'Count'))      
+
+p = p +  geom_point(aes_string(color = colorBy)) + 
+  scale_color_continuous(low="red", high="blue", guide=guide_colorbar(reverse=TRUE)) + 
+  ylab(NULL) + ggtitle(title) + 
+  DOSE::theme_dose(font.size) + 
+  scale_size_continuous(range=c(3, 8)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+show(p)
+
+
+ggsave(p, filename = "analysis/plots/allcluster_subsetnames_subsetermss_deg_goenrich_0.25lfcfilter_count.pdf",
+       device = cairo_pdf,
+       width = 6.5, height = 8, 
+       units = "in")
+
+
+
+# plot the top categories in our selected cluster - we decided not to use this
+p = dotplot(ck, by = "Count", showCategory=3) + 
+  FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+show(p)
+ggsave(p, filename = "analysis/plots/allcluster_subsetnames_deg_goenrich_0.25lfcfilter_count.pdf",
        width = 6, height = 7, units = "in")
 
 
+ck_filter = ck %>%
+  dplyr::filter(p.adjust < 0.05)
+  
+p = dotplot(ck, by = "Count", showCategory=3) + 
+  FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+show(p)
 
-
-
+# next -----
 br_deg_sig = br_deg %>%
   dplyr::filter(cluster != "high-mt cluster") %>%
   mutate(exp_10 = ifelse(pct.1 > 0.1, 1,0)) %>%
@@ -185,32 +341,93 @@ ck_mg_hbc = ck %>%
   dplyr::filter(cluster %in% c('HBC','Microglia','Microglia_YSI'))
 
 dotplot(ck_mg_hbc, showCategory = 30)+ 
-  FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
+  FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) 
 
 
 # find differences in mg and hbc ----
 ck_mg = ck %>%
   dplyr::filter(cluster %in% c('Microglia','Microglia_YSI'))
+
 ck_hbc = ck %>%
   dplyr::filter(cluster %in% c('HBC'))
 
 mg_cat = unique(ck_mg@compareClusterResult$Description)
 hbc_cat = unique(ck_hbc@compareClusterResult$Description)
 
+hbc_to_select = ck_mg_hbc_diff %>%
+  dplyr::filter(Description %in% c(setdiff(mg_cat, hbc_cat), setdiff(hbc_cat, mg_cat))) %>%
+  dplyr::filter(Cluster == "HBC") %>%
+  arrange(qvalue) %>%
+  head(5)
+
+mg_to_select = ck_mg_hbc_diff %>%
+  dplyr::filter(Description %in% c(setdiff(mg_cat, hbc_cat), setdiff(hbc_cat, mg_cat))) %>%
+  dplyr::filter(Cluster == "Microglia") %>%
+  arrange(qvalue) %>%
+  head(5)
+
+mgysi_to_select = ck_mg_hbc_diff %>%
+  dplyr::filter(Description %in% c(setdiff(mg_cat, hbc_cat), setdiff(hbc_cat, mg_cat))) %>%
+  dplyr::filter(Cluster == "Microglia_YSI") %>%
+  arrange(qvalue) %>%
+  head(5)
+
+final_to_select = unique(c(hbc_to_select$Description, mg_to_select$Description, mgysi_to_select$Description))
 ck_mg_hbc_diff = ck %>%
   dplyr::filter(cluster %in% c('HBC','Microglia','Microglia_YSI')) %>%
-  dplyr::filter(Description %in% c(setdiff(mg_cat, hbc_cat), setdiff(hbc_cat, mg_cat)))
+  dplyr::filter(Description %in% final_to_select)
 
-p = dotplot(ck_mg_hbc_diff, showCategory = 5)+ 
+ck_mg_hbc_diff@compareClusterResult$Description = factor(ck_mg_hbc_diff@compareClusterResult$Description, levels = rev(final_to_select))
+
+
+
+# new plotting colors
+p = dotplot(ck_mg_hbc_diff, showCategory = 5, by="Count") + 
+  scale_color_continuous(low="red", high="blue", guide=guide_colorbar(reverse=TRUE)) + 
   FontSize(x.text = 8, y.text= 8) + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 show(p)
 
-ggsave(p, filename = "analysis/plots/mg_hbc_diff_subsetnames_deg_goenrich_0.25lfcfilter.pdf",
+ggsave(p, filename = "analysis/plots/mg_hbc_diff_subsetnames_deg_goenrich_0.25lfcfilter_count.pdf",
        width = 5, height = 5.5, units = "in")
 
+# try to get old plotting colors
+## The below is to order the factors
+object = ck_mg_hbc_diff@compareClusterResult
+x= "Cluster"
+colorBy="p.adjust"
+showCategory=3
+by="Count"
+size="Count"
+split=NULL
+includeAll=TRUE
+font.size=12
+title=""
+label_format = 30
+group = FALSE
+shape = FALSE
+color <- NULL
 
+df <- fortify(object, showCategory=showCategory, by=by,
+             includeAll=includeAll, split=split)
+
+df$GeneRatio <- DOSE::parse_ratio(df$GeneRatio)
+
+theme_dose <- DOSE::theme_dose
+
+p <- ggplot(df, aes_string(x = 'cluster', y = "Description", size = 'Count'))      
+
+p = p +  geom_point(aes_string(color = colorBy)) + 
+  scale_color_continuous(low="red", high="blue", guide=guide_colorbar(reverse=TRUE)) + 
+  ylab(NULL) + ggtitle(title) + 
+  DOSE::theme_dose(font.size) + 
+  scale_size_continuous(range=c(3, 8)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  xlab("")
+show(p)
+
+ggsave(p, filename = "analysis/plots/mg_hbc_diff_subsetnames_deg_goenrich_0.25lfcfilter_count.pdf",
+       width = 7, height = 6.5, units = "in")
 
 # markers, each in own dataset -----
 br_markers = read.csv("analysis/markers/obsctr/mandf_br_alldata_named_cluster_markers.csv")
